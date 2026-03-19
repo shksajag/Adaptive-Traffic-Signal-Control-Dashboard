@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Signal Control — DQN vs Fixed-Time</title>
+    <meta name="description"
+        content="Dashboard comparing DQN reinforcement learning and Fixed-Time traffic signal control models">
+    <link rel="stylesheet" href="styles.css?v=2">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="5" r="3" />
+                            <rect x="9" y="1" width="6" height="22" rx="3" fill="none" />
+                            <circle cx="12" cy="12" r="3" />
+                            <circle cx="12" cy="19" r="3" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>Traffic Signal Control Analysis</h1>
+                        <p class="subtitle">Comparing DQN Reinforcement Learning with Fixed-Time Baseline</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Controls Toolbar Container -->
+        <div class="controls-wrapper">
+            <section class="controls-toolbar">
+                <div class="toolbar-item">
+                    <span class="toolbar-label">Scenario:</span>
+                    <div class="select-wrapper">
+                        <select id="model-version">
+                            <option value="10">Off-Peak Hours</option>
+                            <option value="16">Peak Hours</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="toolbar-divider"></div>
+
+                <div class="toolbar-item toggle-item">
+                    <div class="toggle-group" id="data-type-toggle">
+                        <button class="toggle-btn active" data-value="training">Training</button>
+                        <button class="toggle-btn" data-value="testing">Testing</button>
+                    </div>
+                </div>
+
+                <div class="toolbar-divider"></div>
+
+                <div class="toolbar-item">
+                    <span class="toolbar-label">Metric:</span>
+                    <div class="select-wrapper">
+                        <select id="metric-select">
+                            <!-- Options populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Context Banner (changes based on data type) -->
+        <section class="context-banner" id="context-banner">
+            <!-- Dynamically generated -->
+        </section>
+
+        <!-- Statistics Cards -->
+        <section class="stats-section">
+            <div class="stats-grid" id="stats-grid">
+                <!-- Stats cards will be dynamically generated -->
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="charts-section">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title" id="chart-title">Time Series</h2>
+                    <span class="chart-subtitle" id="chart-metric-label">Queue Length over Episodes</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="time-series-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title" id="bar-chart-title">Performance Comparison</h2>
+                    <span class="chart-subtitle" id="bar-chart-subtitle">Average Values by Model</span>
+                </div>
+                <div class="chart-wrapper bar-chart-wrapper">
+                    <canvas id="comparison-chart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Data Summary Table -->
+        <section class="table-section">
+            <div class="table-card">
+                <h2 class="table-title">Summary Statistics</h2>
+                <div class="table-wrapper" id="summary-table">
+                    <!-- Dynamically generated -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Performance Analysis -->
+        <section class="analysis-section" id="analysis-section">
+            <div class="analysis-card">
+                <h2 class="analysis-title">Performance Analysis</h2>
+                <div class="analysis-content" id="analysis-content">
+                    <!-- Analysis content will be dynamically generated -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Key Findings Section -->
+        <section class="findings-section">
+            <div class="findings-card">
+                <h2 class="findings-title">Key Findings</h2>
+                <div class="findings-content" id="findings-content">
+                    <!-- Key findings will be dynamically generated -->
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js?v=2"></script>
+</body>
+
+</html>
