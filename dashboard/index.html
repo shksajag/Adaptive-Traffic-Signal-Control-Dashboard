@@ -7,7 +7,7 @@
     <title>Traffic Signal Control — DQN vs Fixed-Time</title>
     <meta name="description"
         content="Dashboard comparing DQN reinforcement learning and Fixed-Time traffic signal control models">
-    <link rel="stylesheet" href="styles.css?v=2">
+    <link rel="stylesheet" href="styles.css?v=3">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -27,17 +27,21 @@
                     </div>
                     <div>
                         <h1>Traffic Signal Control Analysis</h1>
-                        <p class="subtitle">Comparing DQN Reinforcement Learning with Fixed-Time Baseline</p>
+                        <p class="subtitle">DQN Reinforcement Learning · Fixed-Time Baseline · SUMO Simulation</p>
                     </div>
+                </div>
+                <div class="header-badges">
+                    <span class="header-badge dqn-badge">DQN Agent</span>
+                    <span class="header-badge fixed-badge">Fixed-Time</span>
                 </div>
             </div>
         </header>
 
-        <!-- Controls Toolbar Container -->
+        <!-- Controls Toolbar -->
         <div class="controls-wrapper">
             <section class="controls-toolbar">
                 <div class="toolbar-item">
-                    <span class="toolbar-label">Scenario:</span>
+                    <span class="toolbar-label">Scenario</span>
                     <div class="select-wrapper">
                         <select id="model-version">
                             <option value="10">Off-Peak Hours</option>
@@ -58,7 +62,7 @@
                 <div class="toolbar-divider"></div>
 
                 <div class="toolbar-item">
-                    <span class="toolbar-label">Metric:</span>
+                    <span class="toolbar-label">Metric</span>
                     <div class="select-wrapper">
                         <select id="metric-select">
                             <!-- Options populated dynamically -->
@@ -68,15 +72,13 @@
             </section>
         </div>
 
-        <!-- Context Banner (changes based on data type) -->
-        <section class="context-banner" id="context-banner">
-            <!-- Dynamically generated -->
-        </section>
+        <!-- Context Banner -->
+        <section class="context-banner" id="context-banner"></section>
 
         <!-- Statistics Cards -->
         <section class="stats-section">
             <div class="stats-grid" id="stats-grid">
-                <!-- Stats cards will be dynamically generated -->
+                <div class="loading">Loading data</div>
             </div>
         </section>
 
@@ -84,8 +86,10 @@
         <section class="charts-section">
             <div class="chart-container">
                 <div class="chart-header">
-                    <h2 class="chart-title" id="chart-title">Time Series</h2>
-                    <span class="chart-subtitle" id="chart-metric-label">Queue Length over Episodes</span>
+                    <div>
+                        <h2 class="chart-title" id="chart-title">Time Series</h2>
+                        <span class="chart-subtitle" id="chart-metric-label">Queue Length over Episodes</span>
+                    </div>
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="time-series-chart"></canvas>
@@ -94,8 +98,10 @@
 
             <div class="chart-container">
                 <div class="chart-header">
-                    <h2 class="chart-title" id="bar-chart-title">Performance Comparison</h2>
-                    <span class="chart-subtitle" id="bar-chart-subtitle">Average Values by Model</span>
+                    <div>
+                        <h2 class="chart-title" id="bar-chart-title">Comparison</h2>
+                        <span class="chart-subtitle" id="bar-chart-subtitle">Average Values by Model</span>
+                    </div>
                 </div>
                 <div class="chart-wrapper bar-chart-wrapper">
                     <canvas id="comparison-chart"></canvas>
@@ -107,9 +113,7 @@
         <section class="table-section">
             <div class="table-card">
                 <h2 class="table-title">Summary Statistics</h2>
-                <div class="table-wrapper" id="summary-table">
-                    <!-- Dynamically generated -->
-                </div>
+                <div class="table-wrapper" id="summary-table"></div>
             </div>
         </section>
 
@@ -117,24 +121,20 @@
         <section class="analysis-section" id="analysis-section">
             <div class="analysis-card">
                 <h2 class="analysis-title">Performance Analysis</h2>
-                <div class="analysis-content" id="analysis-content">
-                    <!-- Analysis content will be dynamically generated -->
-                </div>
+                <div class="analysis-content" id="analysis-content"></div>
             </div>
         </section>
 
-        <!-- Key Findings Section -->
+        <!-- Key Findings -->
         <section class="findings-section">
             <div class="findings-card">
                 <h2 class="findings-title">Key Findings</h2>
-                <div class="findings-content" id="findings-content">
-                    <!-- Key findings will be dynamically generated -->
-                </div>
+                <div class="findings-content" id="findings-content"></div>
             </div>
         </section>
     </div>
 
-    <script src="app.js?v=2"></script>
+    <script src="app.js?v=3"></script>
 </body>
 
 </html>
