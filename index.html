@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Traffic Signal Control</title>
+    <meta name="description" content="Landing page for Adaptive Traffic Signal Control with a 3D simulation-inspired background.">
+    <link rel="stylesheet" href="landing.css">
+</head>
+
+<body>
+    <canvas id="scene-canvas" aria-hidden="true"></canvas>
+
+    <main class="page-shell">
+        <header class="top-bar">
+            <div class="brand">
+                <span class="brand-dot"></span>
+                <span class="brand-text">Adaptive Traffic Signal Control</span>
+            </div>
+            <a class="top-link" href="dashboard/index.html">Open Dashboard</a>
+        </header>
+
+        <section class="hero">
+            <p class="eyebrow">Reinforcement Learning for Smart Intersections</p>
+            <h1>Reduce queue build-up with adaptive traffic signal intelligence.</h1>
+            <p class="hero-copy">
+                This project compares a DQN-based controller against a fixed-time baseline using SUMO simulations,
+                helping reveal how real-time adaptation improves flow under off-peak and peak demand.
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-primary" href="dashboard/index.html">Explore Results</a>
+                <a class="btn btn-secondary" href="dashboard/index.html">View Metrics</a>
+            </div>
+        </section>
+
+        <section class="signal-strip" aria-label="Project highlights">
+            <article class="signal-card">
+                <h2>DQN Agent</h2>
+                <p>Learns phase decisions from traffic state, balancing waiting time and queue pressure.</p>
+            </article>
+            <article class="signal-card">
+                <h2>Baseline Comparison</h2>
+                <p>Benchmarked against fixed-cycle timing to quantify adaptive control gains.</p>
+            </article>
+            <article class="signal-card">
+                <h2>Scenario-Aware</h2>
+                <p>Evaluated across off-peak and peak demand profiles for robust performance analysis.</p>
+            </article>
+        </section>
+    </main>
+
+    <script type="module" src="landing.js"></script>
+</body>
+
+</html>

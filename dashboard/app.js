@@ -19,11 +19,14 @@ const FIXED_VERSION_MAP = {
     '16': '2000_rev'
 };
 
+const THEME_STORAGE_KEY = 'traffic_dashboard_theme';
+
 // ===== State =====
 let state = {
     modelVersion: '10',
     dataType: 'training',
     metric: 'queue',
+    smoothingWindow: 1,
     data: {},
     cache: {}          // cache[cacheKey] = values[]
 };
@@ -38,6 +41,7 @@ Chart.defaults.font.family = "'DM Mono', monospace";
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
+    applyInitialTheme();
     initializeControls();
     populateMetricOptions();
     loadAllData();
@@ -63,6 +67,57 @@ function initializeControls() {
         state.metric = e.target.value;
         updateVisualizations();
     });
+
+    document.getElementById('smoothing-select').addEventListener('change', (e) => {
+        state.smoothingWindow = parseInt(e.target.value, 10) || 1;
+        updateVisualizations();
+    });
+
+    document.getElementById('download-csv-btn').addEventListener('click', downloadCurrentCsv);
+    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+}
+
+function applyInitialTheme() {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+    setTheme(theme);
+}
+
+function toggleTheme() {
+    const isLight = document.body.classList.contains('light-theme');
+    setTheme(isLight ? 'dark' : 'light');
+}
+
+function setTheme(theme) {
+    const isLight = theme === 'light';
+    document.body.classList.toggle('light-theme', isLight);
+    localStorage.setItem(THEME_STORAGE_KEY, isLight ? 'light' : 'dark');
+
+    const button = document.getElementById('theme-toggle-btn');
+    const label = document.getElementById('theme-toggle-label');
+    if (button) {
+        if (label) {
+            label.textContent = isLight ? 'Dark Mode' : 'Light Mode';
+        }
+        button.setAttribute('aria-label', isLight ? 'Switch to dark mode' : 'Switch to light mode');
+    }
+
+    applyChartTheme();
+    refreshChartsForTheme();
+}
+
+function applyChartTheme() {
+    const style = getComputedStyle(document.body);
+    Chart.defaults.color = style.getPropertyValue('--text-muted').trim() || '#5a6070';
+    Chart.defaults.borderColor = style.getPropertyValue('--border-dim').trim() || 'rgba(255,255,255,0.06)';
+}
+
+function refreshChartsForTheme() {
+    if (Object.keys(state.data).length > 0) {
+        updateTimeSeriesChart();
+        updateComparisonChart();
+    }
 }
 
 function populateMetricOptions() {
@@ -159,6 +214,7 @@ function showLoading() {
 // ===== Visualizations =====
 function updateVisualizations() {
     updateContextBanner();
+    updateOverviewStrip();
     updateStatsCards();
     updateTimeSeriesChart();
     updateComparisonChart();
@@ -200,17 +256,79 @@ function updateChartLabel() {
     const metric = getActiveMetrics()[state.metric];
     if (!metric) return;
 
+    const smoothingText = state.smoothingWindow > 1
+        ? ` · Smoothed (${state.smoothingWindow}-point MA)`
+        : '';
+
     if (state.dataType === 'training') {
         document.getElementById('chart-title').textContent = 'DQN Training Progress';
-        document.getElementById('chart-metric-label').textContent = `${metric.name} over Episodes`;
+        document.getElementById('chart-metric-label').textContent = `${metric.name} over Episodes${smoothingText}`;
         document.getElementById('bar-chart-title').textContent = 'Episode Statistics';
         document.getElementById('bar-chart-subtitle').textContent = 'Min / Avg / Max values';
     } else {
         document.getElementById('chart-title').textContent = 'DQN vs Fixed-Time';
-        document.getElementById('chart-metric-label').textContent = `${metric.name} over Simulation Steps`;
+        document.getElementById('chart-metric-label').textContent = `${metric.name} over Simulation Steps${smoothingText}`;
         document.getElementById('bar-chart-title').textContent = 'Average Comparison';
         document.getElementById('bar-chart-subtitle').textContent = `${metric.name} by Model`;
     }
+}
+
+function updateOverviewStrip() {
+    const strip = document.getElementById('overview-strip');
+    const metric = getActiveMetrics()[state.metric];
+    if (!metric) {
+        strip.innerHTML = '';
+        return;
+    }
+
+    const dqnData = state.data.dqn?.[state.metric] || [];
+    const fixedData = state.data.fixed?.[state.metric] || [];
+    const scenario = state.modelVersion === '10' ? 'Off-Peak' : 'Peak';
+    const smoothLabel = state.smoothingWindow > 1 ? `${state.smoothingWindow}-point MA` : 'Raw';
+
+    const cards = [];
+    cards.push(`
+        <article class="overview-card">
+            <span class="overview-label">Scenario</span>
+            <span class="overview-value">${scenario} · ${state.dataType === 'training' ? 'Training' : 'Testing'}</span>
+            <span class="overview-sub">View: ${smoothLabel}</span>
+        </article>`);
+
+    if (dqnData.length > 1) {
+        const trend = dqnData[dqnData.length - 1] - dqnData[0];
+        const trendUp = trend >= 0;
+        cards.push(`
+            <article class="overview-card ${trendUp ? 'positive' : 'warning'}">
+                <span class="overview-label">DQN Trend</span>
+                <span class="overview-value">${trendUp ? 'Upward' : 'Downward'} ${Math.abs((trend / (Math.abs(dqnData[0]) || 1)) * 100).toFixed(1)}%</span>
+                <span class="overview-sub">From first to latest data point</span>
+            </article>`);
+    }
+
+    if (state.dataType === 'testing' && dqnData.length > 0 && fixedData.length > 0) {
+        const dqnAvg = average(dqnData);
+        const fixedAvg = average(fixedData);
+        const delta = metric.lowerIsBetter
+            ? ((fixedAvg - dqnAvg) / (Math.abs(fixedAvg) || 1)) * 100
+            : ((dqnAvg - fixedAvg) / (Math.abs(fixedAvg) || 1)) * 100;
+        cards.push(`
+            <article class="overview-card ${delta >= 0 ? 'positive' : 'warning'}">
+                <span class="overview-label">Relative Outcome</span>
+                <span class="overview-value">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}% vs Fixed-Time</span>
+                <span class="overview-sub">Based on current ${metric.name.toLowerCase()}</span>
+            </article>`);
+    }
+
+    const activeModels = getActiveModels();
+    const points = activeModels.reduce((sum, key) => sum + (state.data[key]?.[state.metric]?.length || 0), 0);
+    cards.push(`
+        <article class="overview-card">
+            <span class="overview-label">Data Coverage</span>
+            <span class="overview-value">${points} points</span>
+            <span class="overview-sub">Across ${activeModels.length} model${activeModels.length > 1 ? 's' : ''}</span>
+        </article>`);
+
+    strip.innerHTML = `<div class="overview-grid">${cards.join('')}</div>`;
 }
 
 // ===== Stats Cards =====
@@ -293,6 +411,13 @@ const CHART_COLORS = {
 };
 
 function darkChartOptions(metric, xLabel) {
+    const style = getComputedStyle(document.body);
+    const textPrimary = style.getPropertyValue('--text-primary').trim();
+    const textSecondary = style.getPropertyValue('--text-secondary').trim();
+    const textMuted = style.getPropertyValue('--text-muted').trim();
+    const borderDim = style.getPropertyValue('--border-dim').trim();
+    const bgElevated = style.getPropertyValue('--bg-elevated').trim();
+
     return {
         responsive: true,
         maintainAspectRatio: false,
@@ -302,17 +427,17 @@ function darkChartOptions(metric, xLabel) {
             legend: {
                 display: false,
                 labels: {
-                    color: '#9aa0b0',
+                    color: textSecondary,
                     usePointStyle: true,
                     padding: 20,
                     font: { size: 11, family: "'DM Mono', monospace" }
                 }
             },
             tooltip: {
-                backgroundColor: '#1c1f26',
-                titleColor: '#e8eaf0',
-                bodyColor: '#9aa0b0',
-                borderColor: 'rgba(255,255,255,0.1)',
+                backgroundColor: bgElevated,
+                titleColor: textPrimary,
+                bodyColor: textSecondary,
+                borderColor: borderDim,
                 borderWidth: 1,
                 padding: 12,
                 displayColors: true,
@@ -322,19 +447,19 @@ function darkChartOptions(metric, xLabel) {
         },
         scales: {
             x: {
-                title: { display: true, text: xLabel, color: '#5a6070', font: { size: 10, family: "'DM Mono', monospace" } },
-                grid: { color: 'rgba(255,255,255,0.04)' },
-                ticks: { color: '#5a6070', maxTicksLimit: 10, font: { size: 10 } }
+                title: { display: true, text: xLabel, color: textMuted, font: { size: 10, family: "'DM Mono', monospace" } },
+                grid: { color: borderDim },
+                ticks: { color: textMuted, maxTicksLimit: 10, font: { size: 10 } }
             },
             y: {
                 title: {
                     display: true,
                     text: `${metric.name}${metric.unit ? ` (${metric.unit})` : ''}`,
-                    color: '#5a6070',
+                    color: textMuted,
                     font: { size: 10, family: "'DM Mono', monospace" }
                 },
-                grid: { color: 'rgba(255,255,255,0.04)' },
-                ticks: { color: '#5a6070', font: { size: 10 } }
+                grid: { color: borderDim },
+                ticks: { color: textMuted, font: { size: 10 } }
             }
         }
     };
@@ -355,7 +480,8 @@ function updateTimeSeriesChart() {
         if (data.length === 0) continue;
 
         const color = CHART_COLORS[modelKey];
-        const sampled = downsample(data, 500);
+        const smoothed = movingAverage(data, state.smoothingWindow);
+        const sampled = downsample(smoothed, 500);
 
         datasets.push({
             label: CONFIG.models[modelKey].name,
@@ -404,7 +530,7 @@ function updateComparisonChart() {
     delete baseOptions.scales.x.title;
     baseOptions.scales.x.grid = { display: false };
     baseOptions.scales.x.ticks.font = { size: 11, family: "'Syne', sans-serif", weight: '600' };
-    baseOptions.scales.x.ticks.color = '#9aa0b0';
+    baseOptions.scales.x.ticks.color = getComputedStyle(document.body).getPropertyValue('--text-secondary').trim();
 
     if (state.dataType === 'training') {
         const data = state.data.dqn?.[state.metric] || [];
@@ -735,4 +861,84 @@ function downsample(data, maxPoints) {
         result.push(average(data.slice(i, Math.min(i + step, data.length))));
     }
     return result;
+}
+
+function movingAverage(data, windowSize) {
+    const size = Number(windowSize) || 1;
+    if (size <= 1 || data.length <= 2) return data;
+
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+        const start = Math.max(0, i - size + 1);
+        result.push(average(data.slice(start, i + 1)));
+    }
+    return result;
+}
+
+function downloadCurrentCsv() {
+    const metric = getActiveMetrics()[state.metric];
+    if (!metric) return;
+
+    const activeModels = getActiveModels();
+    const rows = [];
+    rows.push(['mode', 'scenario', 'metric', 'unit', 'model', 'index', 'raw_value', 'smoothed_value'].join(','));
+
+    const scenario = state.modelVersion === '10' ? 'off_peak' : 'peak';
+
+    for (const modelKey of activeModels) {
+        const model = CONFIG.models[modelKey];
+        const data = state.data[modelKey]?.[state.metric] || [];
+        if (data.length === 0) continue;
+
+        const smoothed = movingAverage(data, state.smoothingWindow);
+        for (let i = 0; i < data.length; i++) {
+            rows.push([
+                escapeCsv(state.dataType),
+                escapeCsv(scenario),
+                escapeCsv(metric.name),
+                escapeCsv(metric.unit || ''),
+                escapeCsv(model.name),
+                i + 1,
+                toCsvNumber(data[i]),
+                toCsvNumber(smoothed[i])
+            ].join(','));
+        }
+    }
+
+    if (rows.length <= 1) return;
+
+    const csv = rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const metricSlug = slugify(metric.name);
+    const filename = `traffic_${state.dataType}_${scenario}_${metricSlug}_w${state.smoothingWindow}.csv`;
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function escapeCsv(value) {
+    const str = String(value ?? '');
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+}
+
+function toCsvNumber(value) {
+    if (value === undefined || value === null || Number.isNaN(value)) return '';
+    return Number(value).toString();
+}
+
+function slugify(value) {
+    return String(value)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
 }
